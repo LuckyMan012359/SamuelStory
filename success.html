@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="./assets/icon/icon.png" type="image/x-icon">
+    <link rel="stylesheet" href="./assets/css/init.css">
+    <script src="./assets/phaser/dist/phaser.min.js"></script>
+    <title>Samuel Story | Success</title>
+</head>
+
+<body>
+
+    <div class="gameover" id="gameover">
+        <h1>GAME OVER</h1>
+        <div class="restart-btn" onclick="restart()">Restart</div>
+    </div>
+
+    <div class="state" id="state" style="display: none;">
+        <div class="hp">
+            <div class="image hp-image">
+                <img src="./assets/imgs/success/character/right/stand1_0.png" alt="HP">
+            </div>
+            <div class="box hp-box">
+                <div class="bar hp-bar" id="hp-bar"></div>
+            </div>
+            <div class="value hp-value" id="hp-value">100</div>
+        </div>
+        <div class="score">
+            <div class="image score-image">
+                <img src="./assets/imgs/success/enemy/right/stand_0.png" alt="SCORE">
+            </div>
+            <div class="box score-box">
+                <div class="bar score-bar" id="score-bar"></div>
+            </div>
+            <div class="value score-value" id="score-value">0</div>
+        </div>
+    </div>
+
+    <div class="quote" id="quote">
+        <div class="quote-container">
+            <div class="quote-top" id="quote-content">
+
+            </div>
+            <div class="quote-bottom"></div>
+            <div class="quote-hider"></div>
+        </div>
+    </div>
+
+    <script>
+
+        let logedin = localStorage.getItem('logedin') || null;
+        if (!logedin || logedin != 'true') {
+            window.location.href = './index.html';
+        }
+
+        const restart = () => {
+            game.scene.scenes[0].scene.restart();
+            hp_player_working = hp_player;
+            score = 0;
+            document.getElementById('gameover').style.display = 'none';
+        };
+
+        let loaded = false;
+
+        const bg_width = 1917;
+        const bg_height = 881;
+
+        const DEFAULT_WIDTH = window.innerWidth;
+        const DEFAULT_HEIGHT = window.innerHeight;
+
+        const scale_rate = DEFAULT_WIDTH / bg_width;
+        const player_scale_rate = scale_rate * 0.7;
+        const enemy_scale_rate = scale_rate * 0.5;
+        const space_attacks = 1000;
+        const cameraRate = bg_width / DEFAULT_WIDTH > bg_height / DEFAULT_HEIGHT ? DEFAULT_HEIGHT / (bg_height * scale_rate) : DEFAULT_WIDTH / (bg_width * scale_rate);
+
+        let img_source = 'assets/imgs/success';
+        let audio_source = 'assets/audios';
+
+        const speedHori = 200;
+        const speedVert = 200;
+
+
+        let player;
+        let npc;
+        let enemies = [];
+        let bullets_player;
+        let bullets_enemy;
+        let portal;
+        let portalHole;
+
+        let score = 0;
+        let scoreText;
+        let hpPlayerText;
+        let look_direction = 1;
+
+        let numOfEnemiesFull = 15;
+        const numOfEnemiesFull2 = 15;
+        let numOfEnemies = 0;
+        let numOfCurrentEnemies = 0;
+
+        const hp_player = 1000;
+        const hp_enemy = 100;
+        const damage_player = 60;
+        const damage_enemy = 5;
+
+        let hp_player_working = hp_player;
+
+
+        let platforms;
+        let ladders;
+        let cursors;
+        const topEnablePlatformData = [
+            { x1: 888, y1: 721, x2: 1574, y2: 722 },
+            { x1: 891, y1: 512, x2: 1571, y2: 513 },
+            { x1: 1442, y1: 691, x2: 1538, y2: 692 },
+            { x1: 1475, y1: 662, x2: 1565, y2: 663 },
+            { x1: 1508, y1: 633, x2: 1576, y2: 634 },
+            { x1: 1542, y1: 602, x2: 1576, y2: 603 },
+            { x1: 1513, y1: 573, x2: 1576, y2: 574 },
+            { x1: 1486, y1: 544, x2: 1576, y2: 545 },
+            { x1: 1458, y1: 515, x2: 1545, y2: 516 },
+        ];
+
+        let mainCollider;
+        let topEnableColliders = [];
+
+        let gameOver = false;
+
+        let sound_env;
+
+        const frameRate = 10;
+        const frameRepeat = -1;
+        const spawns = [
+        ];
+
+        let isClimbing = false;
+        let metNPC = false;
+        let meetingNPC = false;
+        let isSpeaking = false;
+        let leaveNPC = false;
+
+        const positionOfPortal = { x: 1239, y: 500 };
+        const positionOfNpc1 = { x: 1240, y: 460 };
+        const positionOfNpc2 = { x: 1336, y: 560 };
+        const speakingNpc1 = [
+            "Welcome home my love.",
+            "How was your day? I’ve cooked some horfun for you.",
+            "Jk I don’t know to cook horfun. But I also just wanted to let you know that I am very thankful for you and also very proud of you.",
+            "Thank you for inspiring me by always trying your best at whatever you do, and for all the acts of service that you do for me - from part-time bed bug exterminator to GetGo regular because you want to spend more time with me.",
+            "I know you will miss Race Course Road, so wanted to see if I could immortalise some of it for you. But we are also just 4km away hehe so can go back too.",
+            "HAPPY 28TH BIRTHDAY MY INSAMITY. To many more birthdays and coming home to each other. I love you.",
+        ];
+        const speakingNpc2 = [
+            "Babu you are on laundry duty xoxo",
+        ];
+        const speakingNpc3 = [
+            "",
+        ];
+        let whichSpeaking = 1;
+        let speakingStep1 = 1;
+        let speakingStep2 = 1;
+        let speakingStep3 = 1;
+
+        let enablePortal = false;
+
+        class SceneA extends Phaser.Scene {
+
+            constructor() {
+                super({ key: 'GameScene' })
+            }
+
+            preload() {
+
+                this.load.audio('sound_env', audio_source + '/sound_env_end.mp3');
+                this.load.audio('sound_die', audio_source + '/die.mp3');
+                this.load.audio('sound_hit', audio_source + '/hit.mp3');
+
+                this.load.image('bg', img_source + '/bg/bg.png');
+
+                this.load.image('player_left_alert_0', img_source + '/character/left/alert_0.png');
+                this.load.image('player_left_alert_1', img_source + '/character/left/alert_1.png');
+                this.load.image('player_left_alert_2', img_source + '/character/left/alert_2.png');
+                this.load.image('player_left_alert_3', img_source + '/character/left/alert_3.png');
+
+                this.load.image('player_left_fly_0', img_source + '/character/left/fly_0.png');
+                this.load.image('player_left_fly_1', img_source + '/character/left/fly_1.png');
+                this.load.image('player_left_fly_2', img_source + '/character/left/fly_2.png');
+
+                this.load.image('player_left_jump_0', img_source + '/character/left/jump_0.png');
+                this.load.image('player_left_jump_1', img_source + '/character/left/jump_1.png');
+
+                this.load.image('player_left_prone_0', img_source + '/character/left/prone_0.png');
+                this.load.image('player_left_prone_1', img_source + '/character/left/prone_1.png');
+
+                this.load.image('player_left_proneStab_0', img_source + '/character/left/proneStab_0.png');
+                this.load.image('player_left_proneStab_1', img_source + '/character/left/proneStab_1.png');
+                this.load.image('player_left_proneStab_2', img_source + '/character/left/proneStab_2.png');
+
+                this.load.image('player_left_shoot1_0', img_source + '/character/left/shoot1_0.png');
+                this.load.image('player_left_shoot1_1', img_source + '/character/left/shoot1_1.png');
+                this.load.image('player_left_shoot1_2', img_source + '/character/left/shoot1_2.png');
+                this.load.image('player_left_shoot1_3', img_source + '/character/left/shoot1_3.png');
+
+                this.load.image('player_left_shootF_0', img_source + '/character/left/shootF_0.png');
+                this.load.image('player_left_shootF_1', img_source + '/character/left/shootF_1.png');
+                this.load.image('player_left_shootF_2', img_source + '/character/left/shootF_2.png');
+                this.load.image('player_left_shootF_3', img_source + '/character/left/shootF_3.png');
+
+                this.load.image('player_left_stabO1_0', img_source + '/character/left/stabO1_0.png');
+                this.load.image('player_left_stabO1_1', img_source + '/character/left/stabO1_1.png');
+                this.load.image('player_left_stabO1_2', img_source + '/character/left/stabO1_2.png');
+
+                this.load.image('player_left_stabO2_0', img_source + '/character/left/stabO2_0.png');
+                this.load.image('player_left_stabO2_1', img_source + '/character/left/stabO2_1.png');
+                this.load.image('player_left_stabO2_2', img_source + '/character/left/stabO2_2.png');
+
+                this.load.image('player_left_stand1_0', img_source + '/character/left/stand1_0.png');
+                this.load.image('player_left_stand1_1', img_source + '/character/left/stand1_1.png');
+                this.load.image('player_left_stand1_2', img_source + '/character/left/stand1_2.png');
+                this.load.image('player_left_stand1_3', img_source + '/character/left/stand1_3.png');
+
+                this.load.image('player_left_swingO1_0', img_source + '/character/left/swingO1_0.png');
+                this.load.image('player_left_swingO1_1', img_source + '/character/left/swingO1_1.png');
+                this.load.image('player_left_swingO1_2', img_source + '/character/left/swingO1_2.png');
+                this.load.image('player_left_swingO1_3', img_source + '/character/left/swingO1_3.png');
+
+                this.load.image('player_left_swingO2_0', img_source + '/character/left/swingO2_0.png');
+                this.load.image('player_left_swingO2_1', img_source + '/character/left/swingO2_1.png');
+                this.load.image('player_left_swingO2_2', img_source + '/character/left/swingO2_2.png');
+                this.load.image('player_left_swingO2_3', img_source + '/character/left/swingO2_3.png');
+
+                this.load.image('player_left_swingO3_0', img_source + '/character/left/swingO3_0.png');
+                this.load.image('player_left_swingO3_1', img_source + '/character/left/swingO3_1.png');
+                this.load.image('player_left_swingO3_2', img_source + '/character/left/swingO3_2.png');
+                this.load.image('player_left_swingO3_3', img_source + '/character/left/swingO3_3.png');
+
+                this.load.image('player_left_walk1_0', img_source + '/character/left/walk1_0.png');
+                this.load.image('player_left_walk1_1', img_source + '/character/left/walk1_1.png');
+                this.load.image('player_left_walk1_2', img_source + '/character/left/walk1_2.png');
+                this.load.image('player_left_walk1_3', img_source + '/character/left/walk1_3.png');
+                this.load.image('player_left_walk1_4', img_source + '/character/left/walk1_4.png');
+
+                this.load.image('player_left_particle_stab', img_source + '/character/left/particle_stab.png');
+                this.load.image('player_left_particle_swing', img_source + '/character/left/particle_swing.png');
+
+                ////////////////////////// right images
+
+                this.load.image('player_right_alert_0', img_source + '/character/right/alert_0.png');
+                this.load.image('player_right_alert_1', img_source + '/character/right/alert_1.png');
+                this.load.image('player_right_alert_2', img_source + '/character/right/alert_2.png');
+                this.load.image('player_right_alert_3', img_source + '/character/right/alert_3.png');
+
+                this.load.image('player_right_fly_0', img_source + '/character/right/fly_0.png');
+                this.load.image('player_right_fly_1', img_source + '/character/right/fly_1.png');
+                this.load.image('player_right_fly_2', img_source + '/character/right/fly_2.png');
+
+                this.load.image('player_right_jump_0', img_source + '/character/right/jump_0.png');
+                this.load.image('player_right_jump_1', img_source + '/character/right/jump_1.png');
+
+                this.load.image('player_right_prone_0', img_source + '/character/right/prone_0.png');
+                this.load.image('player_right_prone_1', img_source + '/character/right/prone_1.png');
+
+                this.load.image('player_right_proneStab_0', img_source + '/character/right/proneStab_0.png');
+                this.load.image('player_right_proneStab_1', img_source + '/character/right/proneStab_1.png');
+                this.load.image('player_right_proneStab_2', img_source + '/character/right/proneStab_2.png');
+
+                this.load.image('player_right_shoot1_0', img_source + '/character/right/shoot1_0.png');
+                this.load.image('player_right_shoot1_1', img_source + '/character/right/shoot1_1.png');
+                this.load.image('player_right_shoot1_2', img_source + '/character/right/shoot1_2.png');
+                this.load.image('player_right_shoot1_3', img_source + '/character/right/shoot1_3.png');
+
+                this.load.image('player_right_shootF_0', img_source + '/character/right/shootF_0.png');
+                this.load.image('player_right_shootF_1', img_source + '/character/right/shootF_1.png');
+                this.load.image('player_right_shootF_2', img_source + '/character/right/shootF_2.png');
+                this.load.image('player_right_shootF_3', img_source + '/character/right/shootF_3.png');
+
+                this.load.image('player_right_stabO1_0', img_source + '/character/right/stabO1_0.png');
+                this.load.image('player_right_stabO1_1', img_source + '/character/right/stabO1_1.png');
+                this.load.image('player_right_stabO1_2', img_source + '/character/right/stabO1_2.png');
+
+                this.load.image('player_right_stabO2_0', img_source + '/character/right/stabO2_0.png');
+                this.load.image('player_right_stabO2_1', img_source + '/character/right/stabO2_1.png');
+                this.load.image('player_right_stabO2_2', img_source + '/character/right/stabO2_2.png');
+
+                this.load.image('player_right_stand1_0', img_source + '/character/right/stand1_0.png');
+                this.load.image('player_right_stand1_1', img_source + '/character/right/stand1_1.png');
+                this.load.image('player_right_stand1_2', img_source + '/character/right/stand1_2.png');
+                this.load.image('player_right_stand1_3', img_source + '/character/right/stand1_3.png');
+
+                this.load.image('player_right_swingO1_0', img_source + '/character/right/swingO1_0.png');
+                this.load.image('player_right_swingO1_1', img_source + '/character/right/swingO1_1.png');
+                this.load.image('player_right_swingO1_2', img_source + '/character/right/swingO1_2.png');
+                this.load.image('player_right_swingO1_3', img_source + '/character/right/swingO1_3.png');
+
+                this.load.image('player_right_swingO2_0', img_source + '/character/right/swingO2_0.png');
+                this.load.image('player_right_swingO2_1', img_source + '/character/right/swingO2_1.png');
+                this.load.image('player_right_swingO2_2', img_source + '/character/right/swingO2_2.png');
+                this.load.image('player_right_swingO2_3', img_source + '/character/right/swingO2_3.png');
+
+                this.load.image('player_right_swingO3_0', img_source + '/character/right/swingO3_0.png');
+                this.load.image('player_right_swingO3_1', img_source + '/character/right/swingO3_1.png');
+                this.load.image('player_right_swingO3_2', img_source + '/character/right/swingO3_2.png');
+                this.load.image('player_right_swingO3_3', img_source + '/character/right/swingO3_3.png');
+
+                this.load.image('player_right_walk1_0', img_source + '/character/right/walk1_0.png');
+                this.load.image('player_right_walk1_1', img_source + '/character/right/walk1_1.png');
+                this.load.image('player_right_walk1_2', img_source + '/character/right/walk1_2.png');
+                this.load.image('player_right_walk1_3', img_source + '/character/right/walk1_3.png');
+                this.load.image('player_right_walk1_4', img_source + '/character/right/walk1_4.png');
+
+                this.load.image('player_right_particle_stab', img_source + '/character/right/particle_stab.png');
+                this.load.image('player_right_particle_swing', img_source + '/character/right/particle_swing.png');
+
+                this.load.image('player_climb', img_source + '/character/right/climb.png');
+
+
+                ///////////////////////////////enemy left images
+                this.load.image('enemy_left_attack1_0', img_source + '/enemy/left/attack1_0.png');
+                this.load.image('enemy_left_attack1_1', img_source + '/enemy/left/attack1_1.png');
+                this.load.image('enemy_left_attack1_2', img_source + '/enemy/left/attack1_2.png');
+                this.load.image('enemy_left_attack1_3', img_source + '/enemy/left/attack1_3.png');
+                this.load.image('enemy_left_attack1_4', img_source + '/enemy/left/attack1_4.png');
+                this.load.image('enemy_left_attack1_5', img_source + '/enemy/left/attack1_5.png');
+                this.load.image('enemy_left_attack1_6', img_source + '/enemy/left/attack1_6.png');
+                this.load.image('enemy_left_attack1_7', img_source + '/enemy/left/attack1_7.png');
+                this.load.image('enemy_left_attack1_8', img_source + '/enemy/left/attack1_8.png');
+                this.load.image('enemy_left_attack1_9', img_source + '/enemy/left/attack1_9.png');
+                this.load.image('enemy_left_attack1_10', img_source + '/enemy/left/attack1_10.png');
+                this.load.image('enemy_left_attack1_11', img_source + '/enemy/left/attack1_11.png');
+                this.load.image('enemy_left_attack1_12', img_source + '/enemy/left/attack1_12.png');
+                this.load.image('enemy_left_attack1_13', img_source + '/enemy/left/attack1_13.png');
+                this.load.image('enemy_left_attack1_14', img_source + '/enemy/left/attack1_14.png');
+                this.load.image('enemy_left_attack1_15', img_source + '/enemy/left/attack1_15.png');
+                this.load.image('enemy_left_attack1_16', img_source + '/enemy/left/attack1_16.png');
+                this.load.image('enemy_left_attack1_17', img_source + '/enemy/left/attack1_17.png');
+                this.load.image('enemy_left_attack1_18', img_source + '/enemy/left/attack1_18.png');
+
+                this.load.image('enemy_left_die1_0', img_source + '/enemy/left/die1_0.png');
+                this.load.image('enemy_left_die1_1', img_source + '/enemy/left/die1_1.png');
+                this.load.image('enemy_left_die1_2', img_source + '/enemy/left/die1_2.png');
+                this.load.image('enemy_left_die1_3', img_source + '/enemy/left/die1_3.png');
+                this.load.image('enemy_left_die1_4', img_source + '/enemy/left/die1_4.png');
+                this.load.image('enemy_left_die1_5', img_source + '/enemy/left/die1_5.png');
+
+                this.load.image('enemy_left_move_0', img_source + '/enemy/left/move_0.png');
+                this.load.image('enemy_left_move_1', img_source + '/enemy/left/move_1.png');
+                this.load.image('enemy_left_move_2', img_source + '/enemy/left/move_2.png');
+                this.load.image('enemy_left_move_3', img_source + '/enemy/left/move_3.png');
+
+                this.load.image('enemy_left_stand_0', img_source + '/enemy/left/stand_0.png');
+                this.load.image('enemy_left_stand_1', img_source + '/enemy/left/stand_1.png');
+                this.load.image('enemy_left_stand_2', img_source + '/enemy/left/stand_2.png');
+                this.load.image('enemy_left_stand_3', img_source + '/enemy/left/stand_3.png');
+                this.load.image('enemy_left_stand_4', img_source + '/enemy/left/stand_4.png');
+                this.load.image('enemy_left_stand_5', img_source + '/enemy/left/stand_5.png');
+                this.load.image('enemy_left_stand_6', img_source + '/enemy/left/stand_6.png');
+                this.load.image('enemy_left_stand_7', img_source + '/enemy/left/stand_7.png');
+                this.load.image('enemy_left_stand_8', img_source + '/enemy/left/stand_7.png');
+                this.load.image('enemy_left_stand_9', img_source + '/enemy/left/stand_7.png');
+                this.load.image('enemy_left_stand_10', img_source + '/enemy/left/stand_7.png');
+                this.load.image('enemy_left_stand_11', img_source + '/enemy/left/stand_7.png');
+                this.load.image('enemy_left_stand_12', img_source + '/enemy/left/stand_7.png');
+                this.load.image('enemy_left_stand_13', img_source + '/enemy/left/stand_7.png');
+                this.load.image('enemy_left_stand_14', img_source + '/enemy/left/stand_7.png');
+
+                this.load.image('enemy_left_particle', img_source + '/enemy/left/particle.png');
+
+                ///////////////////////////////enemy right images
+                this.load.image('enemy_right_attack1_0', img_source + '/enemy/right/attack1_0.png');
+                this.load.image('enemy_right_attack1_1', img_source + '/enemy/right/attack1_1.png');
+                this.load.image('enemy_right_attack1_2', img_source + '/enemy/right/attack1_2.png');
+                this.load.image('enemy_right_attack1_3', img_source + '/enemy/right/attack1_3.png');
+                this.load.image('enemy_right_attack1_4', img_source + '/enemy/right/attack1_4.png');
+                this.load.image('enemy_right_attack1_5', img_source + '/enemy/right/attack1_5.png');
+                this.load.image('enemy_right_attack1_6', img_source + '/enemy/right/attack1_6.png');
+                this.load.image('enemy_right_attack1_7', img_source + '/enemy/right/attack1_7.png');
+                this.load.image('enemy_right_attack1_8', img_source + '/enemy/right/attack1_8.png');
+                this.load.image('enemy_right_attack1_9', img_source + '/enemy/right/attack1_9.png');
+                this.load.image('enemy_right_attack1_10', img_source + '/enemy/right/attack1_10.png');
+                this.load.image('enemy_right_attack1_11', img_source + '/enemy/right/attack1_11.png');
+                this.load.image('enemy_right_attack1_12', img_source + '/enemy/right/attack1_12.png');
+                this.load.image('enemy_right_attack1_13', img_source + '/enemy/right/attack1_13.png');
+                this.load.image('enemy_right_attack1_14', img_source + '/enemy/right/attack1_14.png');
+                this.load.image('enemy_right_attack1_15', img_source + '/enemy/right/attack1_15.png');
+                this.load.image('enemy_right_attack1_16', img_source + '/enemy/right/attack1_16.png');
+                this.load.image('enemy_right_attack1_17', img_source + '/enemy/right/attack1_17.png');
+                this.load.image('enemy_right_attack1_18', img_source + '/enemy/right/attack1_18.png');
+
+                this.load.image('enemy_right_die1_0', img_source + '/enemy/right/die1_0.png');
+                this.load.image('enemy_right_die1_1', img_source + '/enemy/right/die1_1.png');
+                this.load.image('enemy_right_die1_2', img_source + '/enemy/right/die1_2.png');
+                this.load.image('enemy_right_die1_3', img_source + '/enemy/right/die1_3.png');
+                this.load.image('enemy_right_die1_4', img_source + '/enemy/right/die1_4.png');
+                this.load.image('enemy_right_die1_5', img_source + '/enemy/right/die1_5.png');
+
+                this.load.image('enemy_right_move_0', img_source + '/enemy/right/move_0.png');
+                this.load.image('enemy_right_move_1', img_source + '/enemy/right/move_1.png');
+                this.load.image('enemy_right_move_2', img_source + '/enemy/right/move_2.png');
+                this.load.image('enemy_right_move_3', img_source + '/enemy/right/move_3.png');
+
+                this.load.image('enemy_right_stand_0', img_source + '/enemy/right/stand_0.png');
+                this.load.image('enemy_right_stand_1', img_source + '/enemy/right/stand_1.png');
+                this.load.image('enemy_right_stand_2', img_source + '/enemy/right/stand_2.png');
+                this.load.image('enemy_right_stand_3', img_source + '/enemy/right/stand_3.png');
+                this.load.image('enemy_right_stand_4', img_source + '/enemy/right/stand_4.png');
+                this.load.image('enemy_right_stand_5', img_source + '/enemy/right/stand_5.png');
+                this.load.image('enemy_right_stand_6', img_source + '/enemy/right/stand_6.png');
+                this.load.image('enemy_right_stand_7', img_source + '/enemy/right/stand_7.png');
+                this.load.image('enemy_right_stand_8', img_source + '/enemy/right/stand_7.png');
+                this.load.image('enemy_right_stand_9', img_source + '/enemy/right/stand_7.png');
+                this.load.image('enemy_right_stand_10', img_source + '/enemy/right/stand_7.png');
+                this.load.image('enemy_right_stand_11', img_source + '/enemy/right/stand_7.png');
+                this.load.image('enemy_right_stand_12', img_source + '/enemy/right/stand_7.png');
+                this.load.image('enemy_right_stand_13', img_source + '/enemy/right/stand_7.png');
+                this.load.image('enemy_right_stand_14', img_source + '/enemy/right/stand_7.png');
+
+                this.load.image('enemy_right_particle', img_source + '/enemy/right/particle.png');
+
+                /////NPC
+                this.load.image('npc1', img_source + '/npc/npc1.png');
+                this.load.image('npc2', img_source + '/npc/npc2.png');
+                this.load.image('npc3', img_source + '/npc/npc3.png');
+
+                //////Portal
+                this.load.image('portal_0', img_source + '/portal/stand_0.png');
+                this.load.image('portal_1', img_source + '/portal/stand_1.png');
+                this.load.image('portal_2', img_source + '/portal/stand_2.png');
+                this.load.image('portal_3', img_source + '/portal/stand_3.png');
+                this.load.image('portal_4', img_source + '/portal/stand_4.png');
+                this.load.image('portal_5', img_source + '/portal/stand_5.png');
+                this.load.image('portal_6', img_source + '/portal/stand_6.png');
+                this.load.image('portal_7', img_source + '/portal/stand_7.png');
+                this.load.image('portal_8', img_source + '/portal/stand_8.png');
+                this.load.image('portal_9', img_source + '/portal/stand_9.png');
+                this.load.image('portal_10', img_source + '/portal/stand_10.png');
+                this.load.image('portal_11', img_source + '/portal/stand_11.png');
+                this.load.image('portal_12', img_source + '/portal/stand_12.png');
+                this.load.image('portal_13', img_source + '/portal/stand_13.png');
+
+
+
+
+
+                // Crude way to simulate loading large resources
+                var progressBar = this.add.graphics();
+                var progressBox = this.add.graphics();
+                progressBox.fillStyle(0x222222, 0.8);
+                progressBox.fillRect(DEFAULT_WIDTH / 2 - 160, DEFAULT_HEIGHT / 2 - 15, 320, 30);
+
+                var width = this.cameras.main.width;
+                var height = this.cameras.main.height;
+                var loadingText = this.make.text({
+                    x: width / 2,
+                    y: height / 2 - 50,
+                    text: 'Loading...',
+                    style: {
+                        font: '20px monospace',
+                        fill: '#ffffff'
+                    }
+                });
+                loadingText.setOrigin(0.5, 0.5);
+
+                this.load.on('progress', function (value) {
+                    progressBar.clear();
+                    progressBar.fillStyle(0xffffff, 1);
+                    progressBar.fillRect(DEFAULT_WIDTH / 2 - 155, DEFAULT_HEIGHT / 2 - 10, 310 * value, 20);
+                });
+                this.load.on('fileprogress', function (file) {
+                });
+                this.load.on('complete', function () {
+                    progressBar.destroy();
+                    progressBox.destroy();
+                    loadingText.destroy();
+                    loaded = true;
+                    // document.querySelector('#state').style.display = 'block';
+                });
+
+                if (loaded) {
+                    progressBar.destroy();
+                    progressBox.destroy();
+                    loadingText.destroy();
+                }
+
+            }
+
+            create() {
+
+                cursors = this.input.keyboard.createCursorKeys();
+
+                this.key_enter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+
+                this.key_w = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+                this.key_s = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+                this.key_a = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+                this.key_d = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+
+                this.key_stab = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.O);
+                this.key_swing = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+
+                let bg = this.add.image(DEFAULT_WIDTH / 2, DEFAULT_HEIGHT / 2, 'bg');
+                bg.setScale(scale_rate);
+
+                // play music
+                sound_env = this.sound.add('sound_env');
+                sound_env.setLoop(true);
+                sound_env.setVolume(0.5);
+                sound_env.play();
+
+                //portal animation
+                this.anims.create({
+                    key: 'portal',
+                    frames: [
+                        { key: 'portal_0' },
+                        { key: 'portal_1' },
+                        { key: 'portal_2' },
+                        { key: 'portal_3' },
+                        { key: 'portal_4' },
+                        { key: 'portal_5' },
+                        { key: 'portal_6' },
+                        { key: 'portal_7' },
+                        { key: 'portal_8' },
+                        { key: 'portal_9' },
+                        { key: 'portal_10' },
+                        { key: 'portal_11' },
+                        { key: 'portal_12' },
+                        { key: 'portal_13' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+                portal = this.physics.add.sprite(positionOfPortal.x * scale_rate, (DEFAULT_HEIGHT / 2) + ((positionOfPortal.y - bg_height / 2 - 100) * scale_rate), 'portal_0');
+                portal.setScale(scale_rate);
+                portal.anims.play('portal', true);
+                portal.setAlpha(0);
+
+                portalHole = this.add.rectangle((positionOfPortal.x) * scale_rate, (DEFAULT_HEIGHT / 2) + ((positionOfPortal.y - 100 - bg_height / 2) * scale_rate), 10 * scale_rate, 50 * scale_rate, 0xff0000);
+                portalHole.setAlpha(0);
+                portalHole.immovable = true;
+                portalHole.allowGravity = false;
+                this.physics.add.existing(portalHole);
+                // this.physics.add.overlap(player, portalHole, null, null, this);
+
+                player = this.physics.add.sprite(370 * scale_rate, (DEFAULT_HEIGHT / 2) + ((700 - bg_height / 2) * scale_rate), 'player_right_stand1_0');
+                player.setScale(player_scale_rate * 2);
+                player.setBounce(0.1);
+                player.setCollideWorldBounds(true);
+                player.setOrigin(0.5, 1);
+
+                // set bounds so the camera won't go outside the game world
+                this.cameras.main.setBounds(0, DEFAULT_HEIGHT / 2 - bg_height * scale_rate / 2, DEFAULT_WIDTH, bg_height * scale_rate);
+                this.cameras.main.startFollow(player);
+                this.cameras.main.setZoom(cameraRate);
+                this.cameras.main.setBackgroundColor('#ccccff');
+
+                npc = this.physics.add.sprite(positionOfNpc1.x * scale_rate, (DEFAULT_HEIGHT / 2) + ((positionOfNpc1.y - bg_height / 2) * scale_rate), 'npc1');
+                npc.setScale(player_scale_rate * 2);
+                // npc.setOffset(0, -3 * scale_rate);
+                npc.setBounce(0.1);
+                npc.setCollideWorldBounds(true);
+                npc.setAlpha(1);
+
+
+                ladders = this.physics.add.group({
+                    immovable: true, // This makes all elements in the group immovable by default
+                    allowGravity: false, // This disables gravity for all elements in the group
+                });
+                const generateLadders = (x1, y1, x2, y2) => {
+                    const rect = this.add.rectangle(x1 * scale_rate, (DEFAULT_HEIGHT / 2) + ((y1 - bg_height / 2) * scale_rate), (x2 - x1) * scale_rate, (y2 - y1) * scale_rate, 0xff0000);
+                    rect.setAlpha(0);
+                    rect.setOrigin(0, 0)
+                    this.physics.add.existing(rect);
+                    ladders.add(rect);
+                }
+                // generateLadders(509, 636, 519, 1112);
+                // generateLadders(1663, 577, 1670, 769);
+                // generateLadders(2194, 698, 2244, 1012);
+                // generateLadders(3918, 574, 3967, 797);
+                // generateLadders(5220, 634, 5270, 997);
+                // this.physics.add.overlap(player, ladders, this.touchLadders, null, this);
+
+                platforms = this.physics.add.staticGroup();
+                const createPlatforms = (x1, y1, x2, y2) => {
+                    platforms.create(x1 * scale_rate, (DEFAULT_HEIGHT / 2) + ((y1 - bg_height / 2) * scale_rate), null)
+                        .setSize((x2 - x1) * scale_rate, (y2 - y1) * scale_rate)
+                        .setDisplaySize((x2 - x1) * scale_rate, (y2 - y1) * scale_rate)
+                        .setOrigin(0, 0)
+                        .setAlpha(0)
+                        .refreshBody();
+                }
+
+                createPlatforms(0, 753, 1916, 880);
+
+                const generateTopEnablePlatforms = (x1, y1, x2, y2) => {
+                    const rect = this.add.rectangle(x1 * scale_rate, (DEFAULT_HEIGHT / 2) + ((y1 - bg_height / 2) * scale_rate), (x2 - x1) * scale_rate, (y2 - y1) * scale_rate, 0xff0000);
+                    rect.setAlpha(0);
+                    rect.setOrigin(0, 0)
+                    this.physics.add.existing(rect);
+                    rect.body.allowGravity = false;
+                    rect.body.immovable = true;
+                    topEnableColliders.push(this.physics.add.collider(player, rect));
+                    this.physics.add.collider(npc, rect);
+                }
+
+                for (let i = 0; i < topEnablePlatformData.length; i++) {
+                    generateTopEnablePlatforms(topEnablePlatformData[i].x1, topEnablePlatformData[i].y1, topEnablePlatformData[i].x2, topEnablePlatformData[i].y2);
+                }
+
+
+
+                mainCollider = this.physics.add.collider(player, platforms);
+                this.physics.add.collider(npc, platforms);
+                this.physics.add.collider(portal, platforms);
+                this.physics.add.collider(portalHole, platforms);
+
+                this.anims.create({
+                    key: 'playerLeftAlert',
+                    frames: [
+                        { key: 'player_left_alert_0' },
+                        { key: 'player_left_alert_1' },
+                        { key: 'player_left_alert_2' },
+                        { key: 'player_left_alert_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightAlert',
+                    frames: [
+                        { key: 'player_right_alert_0' },
+                        { key: 'player_right_alert_1' },
+                        { key: 'player_right_alert_2' },
+                        { key: 'player_right_alert_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftFly',
+                    frames: [
+                        { key: 'player_left_fly_0' },
+                        { key: 'player_left_fly_1' },
+                        { key: 'player_left_fly_2' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightFly',
+                    frames: [
+                        { key: 'player_right_fly_0' },
+                        { key: 'player_right_fly_1' },
+                        { key: 'player_right_fly_2' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftJump',
+                    frames: [
+                        { key: 'player_left_jump_0' },
+                        { key: 'player_left_jump_1' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightJump',
+                    frames: [
+                        { key: 'player_right_jump_0' },
+                        { key: 'player_right_jump_1' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftProne',
+                    frames: [
+                        { key: 'player_left_prone_0' },
+                        { key: 'player_left_prone_1' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightProne',
+                    frames: [
+                        { key: 'player_right_prone_0' },
+                        { key: 'player_right_prone_1' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftProneStab',
+                    frames: [
+                        { key: 'player_left_proneStab_0' },
+                        { key: 'player_left_proneStab_1' },
+                        { key: 'player_left_proneStab_2' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightProneStab',
+                    frames: [
+                        { key: 'player_right_proneStab_0' },
+                        { key: 'player_right_proneStab_1' },
+                        { key: 'player_right_proneStab_2' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftShoot1',
+                    frames: [
+                        { key: 'player_left_shoot1_0' },
+                        { key: 'player_left_shoot1_1' },
+                        { key: 'player_left_shoot1_2' },
+                        { key: 'player_left_shoot1_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightShoot1',
+                    frames: [
+                        { key: 'player_right_shoot1_0' },
+                        { key: 'player_right_shoot1_1' },
+                        { key: 'player_right_shoot1_2' },
+                        { key: 'player_right_shoot1_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftShootF',
+                    frames: [
+                        { key: 'player_left_shootF_0' },
+                        { key: 'player_left_shootF_1' },
+                        { key: 'player_left_shootF_2' },
+                        { key: 'player_left_shootF_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightShootF',
+                    frames: [
+                        { key: 'player_right_shootF_0' },
+                        { key: 'player_right_shootF_1' },
+                        { key: 'player_right_shootF_2' },
+                        { key: 'player_right_shootF_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftStabO1',
+                    frames: [
+                        { key: 'player_left_stabO1_0' },
+                        { key: 'player_left_stabO1_1' },
+                        { key: 'player_left_stabO1_2' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: 0
+                });
+                this.anims.create({
+                    key: 'playerRightStabO1',
+                    frames: [
+                        { key: 'player_right_stabO1_0' },
+                        { key: 'player_right_stabO1_1' },
+                        { key: 'player_right_stabO1_2' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: 0
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftStabO2',
+                    frames: [
+                        { key: 'player_left_stabO2_0' },
+                        { key: 'player_left_stabO2_1' },
+                        { key: 'player_left_stabO2_2' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightStabO2',
+                    frames: [
+                        { key: 'player_right_stabO2_0' },
+                        { key: 'player_right_stabO2_1' },
+                        { key: 'player_right_stabO2_2' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftStand1',
+                    frames: [
+                        { key: 'player_left_stand1_0' },
+                        { key: 'player_left_stand1_1' },
+                        { key: 'player_left_stand1_2' },
+                        { key: 'player_left_stand1_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightStand1',
+                    frames: [
+                        { key: 'player_right_stand1_0' },
+                        { key: 'player_right_stand1_1' },
+                        { key: 'player_right_stand1_2' },
+                        { key: 'player_right_stand1_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftSwingO1',
+                    frames: [
+                        { key: 'player_left_swingO1_0' },
+                        { key: 'player_left_swingO1_1' },
+                        { key: 'player_left_swingO1_2' },
+                        { key: 'player_left_swingO1_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightSwingO1',
+                    frames: [
+                        { key: 'player_right_swingO1_0' },
+                        { key: 'player_right_swingO1_1' },
+                        { key: 'player_right_swingO1_2' },
+                        { key: 'player_right_swingO1_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftSwingO2',
+                    frames: [
+                        { key: 'player_left_swingO2_0' },
+                        { key: 'player_left_swingO2_1' },
+                        { key: 'player_left_swingO2_2' },
+                        { key: 'player_left_swingO2_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightSwingO2',
+                    frames: [
+                        { key: 'player_right_swingO2_0' },
+                        { key: 'player_right_swingO2_1' },
+                        { key: 'player_right_swingO2_2' },
+                        { key: 'player_right_swingO2_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftSwingO3',
+                    frames: [
+                        { key: 'player_left_swingO3_0' },
+                        { key: 'player_left_swingO3_1' },
+                        { key: 'player_left_swingO3_2' },
+                        { key: 'player_left_swingO3_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: 0
+                });
+                this.anims.create({
+                    key: 'playerRightSwingO3',
+                    frames: [
+                        { key: 'player_right_swingO3_0' },
+                        { key: 'player_right_swingO3_1' },
+                        { key: 'player_right_swingO3_2' },
+                        { key: 'player_right_swingO3_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: 0
+                });
+
+
+                this.anims.create({
+                    key: 'playerLeftWalk1',
+                    frames: [
+                        { key: 'player_left_walk1_0' },
+                        { key: 'player_left_walk1_1' },
+                        { key: 'player_left_walk1_2' },
+                        { key: 'player_left_walk1_3' },
+                        { key: 'player_left_walk1_4' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'playerRightWalk1',
+                    frames: [
+                        { key: 'player_right_walk1_0' },
+                        { key: 'player_right_walk1_1' },
+                        { key: 'player_right_walk1_2' },
+                        { key: 'player_right_walk1_3' },
+                        { key: 'player_right_walk1_4' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+                this.anims.create({
+                    key: 'playerClimb',
+                    frames: [
+                        { key: 'player_climb' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+                //enemy animations
+                this.anims.create({
+                    key: 'enemyLeftAttack',
+                    frames: [
+                        { key: 'enemy_left_attack1_0' },
+                        { key: 'enemy_left_attack1_1' },
+                        { key: 'enemy_left_attack1_2' },
+                        { key: 'enemy_left_attack1_3' },
+                        { key: 'enemy_left_attack1_4' },
+                        { key: 'enemy_left_attack1_5' },
+                        { key: 'enemy_left_attack1_6' },
+                        { key: 'enemy_left_attack1_7' },
+                        { key: 'enemy_left_attack1_8' },
+                        { key: 'enemy_left_attack1_9' },
+                        { key: 'enemy_left_attack1_10' },
+                        { key: 'enemy_left_attack1_11' },
+                        { key: 'enemy_left_attack1_12' },
+                        { key: 'enemy_left_attack1_13' },
+                        { key: 'enemy_left_attack1_14' },
+                        { key: 'enemy_left_attack1_15' },
+                        { key: 'enemy_left_attack1_16' },
+                        { key: 'enemy_left_attack1_17' },
+                        { key: 'enemy_left_attack1_18' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: 0
+                });
+                this.anims.create({
+                    key: 'enemyRightAttack',
+                    frames: [
+                        { key: 'enemy_right_attack1_0' },
+                        { key: 'enemy_right_attack1_1' },
+                        { key: 'enemy_right_attack1_2' },
+                        { key: 'enemy_right_attack1_3' },
+                        { key: 'enemy_right_attack1_4' },
+                        { key: 'enemy_right_attack1_5' },
+                        { key: 'enemy_right_attack1_6' },
+                        { key: 'enemy_right_attack1_7' },
+                        { key: 'enemy_right_attack1_8' },
+                        { key: 'enemy_right_attack1_9' },
+                        { key: 'enemy_right_attack1_10' },
+                        { key: 'enemy_right_attack1_11' },
+                        { key: 'enemy_right_attack1_12' },
+                        { key: 'enemy_right_attack1_13' },
+                        { key: 'enemy_right_attack1_14' },
+                        { key: 'enemy_right_attack1_15' },
+                        { key: 'enemy_right_attack1_16' },
+                        { key: 'enemy_right_attack1_17' },
+                        { key: 'enemy_right_attack1_18' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: 0
+                });
+
+
+                this.anims.create({
+                    key: 'enemyLeftDie',
+                    frames: [
+                        { key: 'enemy_left_die1_0' },
+                        { key: 'enemy_left_die1_1' },
+                        { key: 'enemy_left_die1_2' },
+                        { key: 'enemy_left_die1_3' },
+                        { key: 'enemy_left_die1_4' },
+                        { key: 'enemy_left_die1_5' },
+
+                    ],
+                    frameRate: frameRate,
+                    repeat: 0
+                });
+                this.anims.create({
+                    key: 'enemyRightDie',
+                    frames: [
+                        { key: 'enemy_right_die1_0' },
+                        { key: 'enemy_right_die1_1' },
+                        { key: 'enemy_right_die1_2' },
+                        { key: 'enemy_right_die1_3' },
+                        { key: 'enemy_right_die1_4' },
+                        { key: 'enemy_right_die1_5' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: 0
+                });
+
+
+                this.anims.create({
+                    key: 'enemyLeftMove',
+                    frames: [
+                        { key: 'enemy_left_move_0' },
+                        { key: 'enemy_left_move_1' },
+                        { key: 'enemy_left_move_2' },
+                        { key: 'enemy_left_move_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'enemyRightMove',
+                    frames: [
+                        { key: 'enemy_right_move_0' },
+                        { key: 'enemy_right_move_1' },
+                        { key: 'enemy_right_move_2' },
+                        { key: 'enemy_right_move_3' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+                this.anims.create({
+                    key: 'enemyLeftStand',
+                    frames: [
+                        { key: 'enemy_left_stand_0' },
+                        { key: 'enemy_left_stand_1' },
+                        { key: 'enemy_left_stand_2' },
+                        { key: 'enemy_left_stand_3' },
+                        { key: 'enemy_left_stand_4' },
+                        { key: 'enemy_left_stand_5' },
+                        { key: 'enemy_left_stand_6' },
+                        { key: 'enemy_left_stand_7' },
+                        { key: 'enemy_left_stand_8' },
+                        { key: 'enemy_left_stand_9' },
+                        { key: 'enemy_left_stand_10' },
+                        { key: 'enemy_left_stand_11' },
+                        { key: 'enemy_left_stand_12' },
+                        { key: 'enemy_left_stand_13' },
+                        { key: 'enemy_left_stand_14' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+                this.anims.create({
+                    key: 'enemyRightStand',
+                    frames: [
+                        { key: 'enemy_right_stand_0' },
+                        { key: 'enemy_right_stand_1' },
+                        { key: 'enemy_right_stand_2' },
+                        { key: 'enemy_right_stand_3' },
+                        { key: 'enemy_right_stand_4' },
+                        { key: 'enemy_right_stand_5' },
+                        { key: 'enemy_right_stand_6' },
+                        { key: 'enemy_right_stand_7' },
+                        { key: 'enemy_right_stand_8' },
+                        { key: 'enemy_right_stand_9' },
+                        { key: 'enemy_right_stand_10' },
+                        { key: 'enemy_right_stand_11' },
+                        { key: 'enemy_right_stand_12' },
+                        { key: 'enemy_right_stand_13' },
+                        { key: 'enemy_right_stand_14' },
+                    ],
+                    frameRate: frameRate,
+                    repeat: frameRepeat
+                });
+
+
+
+
+
+                bullets_player = this.physics.add.group({
+                    immovable: true, // This makes all elements in the group immovable by default
+                    allowGravity: false, // This disables gravity for all elements in the group
+                });
+                bullets_enemy = this.physics.add.group({
+                    immovable: true, // This makes all elements in the group immovable by default
+                    allowGravity: false, // This disables gravity for all elements in the group
+                });
+
+                this.physics.add.overlap(player, bullets_enemy, (player, bullet_enemy) => this.hittedFromEnemy(player, bullets_enemy, this.sound));
+
+                for (let i = 0; i < spawns.length; i++) {
+                    enemies[i] = this.physics.add.group();
+                }
+
+                for (let i = 0; i < spawns.length; i++) {
+                    for (let j = 0; j < spawns[i].num; j++) {
+                        const time = Phaser.Math.Between(0, 2000);
+                        setTimeout(() => {
+                            if (numOfEnemies < numOfEnemiesFull) {
+                                this.generateEnemy(Phaser.Math.Between(spawns[i].x - 60, spawns[i].x + 60), spawns[i].y, i);
+                            }
+                        }, time);
+                    }
+                }
+
+                enemies.forEach(enemy => {
+                    this.physics.add.collider(enemy, platforms);
+                    this.physics.add.overlap(player, enemy);
+                    this.physics.add.overlap(bullets_player, enemy, (bullet_player, enemy) => this.hitEnemy(bullet_player, enemy, this.sound));
+                });
+
+                this.input.on('pointerdown', function () {
+                    if (isSpeaking && meetingNPC) {
+                        let state = this.showSpeaking(whichSpeaking);
+                        if (state && whichSpeaking == 1) {
+                            setTimeout(() => {
+                                whichSpeaking ++;
+                                meetingNPC = true;
+                                player.anims.play('playerLeftStand1', true);
+                                setTimeout(async () => {
+                                    let quote = await document.querySelector('#quote');
+                                    let quoteContet = await document.getElementById('quote-content');
+                                    quote.style.display = await 'flex';
+                                    quoteContet.innerText = await speakingNpc2[0];
+                                    const computedStylesOfQuote = window.getComputedStyle(quote);
+                                    isSpeaking = true;
+
+                                    quote.style.top = await `${DEFAULT_HEIGHT / 2 + (npc.y - this.cameras.main.midPoint.y) * cameraRate - parseInt(computedStylesOfQuote.height, 10) - 30}px`;
+                                    quote.style.left = await `${DEFAULT_WIDTH / 2 + (npc.x - this.cameras.main.midPoint.x) * cameraRate - parseInt(computedStylesOfQuote.width, 10) / 2}px`;
+                                }, 1000);
+                            }, 30000);
+                        }
+                        if (state && whichSpeaking == 3) {
+                            // enablePortal = true;
+                            // portal.setAlpha(1);
+                        }
+                    }
+                }, this);
+
+                this.input.keyboard.on('keydown-ENTER', function (event) {
+                    if (isSpeaking && meetingNPC) {
+                        let state = this.showSpeaking(whichSpeaking);
+                        if (state && whichSpeaking == 1) {
+                            setTimeout(() => {
+                                whichSpeaking ++;
+                                meetingNPC = true;
+                                player.anims.play('playerLeftStand1', true);
+                                setTimeout(async () => {
+                                    let quote = await document.querySelector('#quote');
+                                    let quoteContet = await document.getElementById('quote-content');
+                                    quote.style.display = await 'flex';
+                                    quoteContet.innerText = await speakingNpc2[0];
+                                    const computedStylesOfQuote = window.getComputedStyle(quote);
+                                    isSpeaking = true;
+
+                                    quote.style.top = await `${DEFAULT_HEIGHT / 2 + (npc.y - this.cameras.main.midPoint.y) * cameraRate - parseInt(computedStylesOfQuote.height, 10) - 30}px`;
+                                    quote.style.left = await `${DEFAULT_WIDTH / 2 + (npc.x - this.cameras.main.midPoint.x) * cameraRate - parseInt(computedStylesOfQuote.width, 10) / 2}px`;
+                                }, 1000);
+                            }, 30000);
+                        }
+                        if (state && whichSpeaking == 3) {
+                            enablePortal = true;
+                            portal.setAlpha(1);
+                        }
+                    }
+                }, this);
+
+                this.physics.add.overlap(player, portalHole, () => {
+                    if (enablePortal) {
+                        meetingNPC = true;
+                        this.tweens.add({
+                            targets: player,
+                            alpha: 0,
+                            ease: 'Linear',
+                            duration: 500,
+                        });
+                        setTimeout(() => {
+                            window.location.href = "./success.html";
+                        }, 800);
+                    }
+                }, null, this);
+
+            }
+
+            generateEnemy(x, y, i) {
+                const enemy = this.physics.add.sprite(x * scale_rate, (DEFAULT_HEIGHT / 2) + ((y - bg_height / 2) * scale_rate), 'enemy_left_stand_0');
+                enemy.setScale(enemy_scale_rate);
+                enemy.setBounce(0.1);
+                enemy.setCollideWorldBounds(true);
+                enemy.anims.play('enemyLeftAttack', true);
+                enemy.look_direction = Phaser.Math.Between(0, 1) === 0 ? -1 : 1;
+                enemy.status = 'stand';
+                enemy.hp = hp_enemy;
+                setTimeout(() => {
+                    enemy.status = 'move';
+                }, 500);
+                enemies[i].add(enemy);
+                numOfEnemies++;
+                numOfCurrentEnemies++;
+            }
+
+            update() {
+
+                if (hp_player_working <= 0) {
+
+                    // hpPlayerText.setText(0);
+
+                    // let widthHpBar = 0;
+                    // temp_hp_Bar.clear();
+                    // temp_hp_Bar.fillStyle(hpBarColor, 1);
+                    // temp_hp_Bar.fillRect(70, 30, widthHpBar, 15);
+                    let sound_die = this.sound.add('sound_die');
+                    sound_die.setVolume(0.4);
+                    sound_die.play();
+
+                    document.getElementById('gameover').style.display = 'flex';
+                    sound_env.stop();
+                    this.physics.pause();
+                    return;
+                }
+
+                for (let i = 0; i < topEnablePlatformData.length; i++) {
+                    if ((DEFAULT_HEIGHT / 2) + (topEnablePlatformData[i].y2 - bg_height / 2) * scale_rate >= player.y) {
+                        topEnableColliders[i].active = true;
+                    }
+                    else {
+                        topEnableColliders[i].active = false;
+                    }
+                }
+
+                if (!metNPC) {
+
+                    if (((player.x >= npc.x - 100 * scale_rate && player.x <= npc.x + 100 * scale_rate)) && player.y <= npc.y + 100 * scale_rate && !meetingNPC) {
+                        meetingNPC = true;
+                        if (player.x > npc.x) {
+                            player.anims.play('playerLeftStand1', true);
+                            npc.setTexture('npc2');
+                        }
+                        else {
+                            player.anims.play('playerRightStand1', true);
+                            npc.setTexture('npc1');
+                        }
+
+                        this.tweens.add({
+                            targets: npc,
+                            alpha: 1,
+                            ease: 'Linear',
+                            duration: 500,
+                        });
+
+                        setTimeout(async () => {
+                            if (!isSpeaking) {
+                                let quote = await document.querySelector('#quote');
+                                let quoteContet = await document.getElementById('quote-content');
+                                quote.style.display = await 'flex';
+                                quoteContet.innerText = await speakingNpc1[0];
+                                isSpeaking = await true;
+                                const computedStylesOfQuote = window.getComputedStyle(quote);
+
+
+                                quote.style.top = await `${DEFAULT_HEIGHT / 2 + (npc.y - this.cameras.main.midPoint.y) * cameraRate - parseInt(computedStylesOfQuote.height, 10) - 30}px`;
+                                quote.style.left = await `${DEFAULT_WIDTH / 2 + (npc.x - this.cameras.main.midPoint.x) * cameraRate - parseInt(computedStylesOfQuote.width, 10) / 2}px`;
+                            }
+                        }, 1000);
+                    }
+                }
+
+                // if (score == numOfEnemiesFull - 2 && numOfEnemies < numOfEnemiesFull) {
+                //     for (let i = score; i < numOfEnemiesFull; i++) {
+                //         this.generateEnemy(Phaser.Math.Between(spawns[0].x - 150, spawns[0].x + 150), spawns[0].y, 10);
+                //     }
+                // }
+
+                if (score >= numOfEnemiesFull && !numOfCurrentEnemies) {
+                    if (!meetingNPC && !leaveNPC) {
+                        meetingNPC = true;
+                        whichSpeaking++;
+                        if (whichSpeaking == 2) {
+                            npc.setTexture('npc2');
+                        }
+                        else if (whichSpeaking == 3) {
+                            npc.setTexture('npc3');
+                        }
+                        npc.x = player.x + 100 * scale_rate;
+                        npc.y = player.y - 70 * scale_rate;
+
+                        player.anims.play('playerRightStand1', true);
+
+                        this.tweens.add({
+                            targets: npc,
+                            alpha: 1,
+                            ease: 'Linear',
+                            duration: 500,
+                        });
+
+                        setTimeout(async () => {
+                            let quote = await document.querySelector('#quote');
+                            let quoteContet = await document.getElementById('quote-content');
+                            quote.style.display = await 'flex';
+                            quoteContet.innerText = await speakingNpc2[0];
+                            const computedStylesOfQuote = window.getComputedStyle(quote);
+                            isSpeaking = true;
+
+                            quote.style.top = await `${DEFAULT_HEIGHT / 2 + (npc.y - this.cameras.main.midPoint.y) * cameraRate - parseInt(computedStylesOfQuote.height, 10) - 30}px`;
+                            quote.style.left = await `${DEFAULT_WIDTH / 2 + (npc.x - this.cameras.main.midPoint.x) * cameraRate - parseInt(computedStylesOfQuote.width, 10) / 2}px`;
+                        }, 1000);
+                    };
+                }
+
+                this.updatePlayer(this.initEnemies);
+                this.updateEnemy(this.physics, this.anims, this.sound);
+
+                let widthHpBar = hp_player_working / hp_player * widthOfBar
+                let hpBar = document.querySelector('#hp-bar');
+                hpBar.style.width = widthHpBar + 'px';
+                // temp_hp_Bar.clear();
+                // temp_hp_Bar.fillStyle(hpBarColor, 1);
+                // temp_hp_Bar.fillRect(70, 30, widthHpBar, 15);
+
+                let widthScoreBar = (score / numOfEnemiesFull) >= 1 ? widthOfBar : (score / numOfEnemiesFull * widthOfBar);
+                let scoreBar = document.querySelector('#score-bar');
+                scoreBar.style.width = widthScoreBar + 'px';
+                // temp_score_Bar.clear();
+                // temp_score_Bar.fillStyle(scoreBarColor, 1);
+                // temp_score_Bar.fillRect(70, 85, widthScoreBar, 15);
+
+                let rateHp = parseInt((hp_player_working / hp_player * 100), 10);
+                // hpPlayerText.setText(rateHp);
+
+                let hpValue = document.querySelector('#hp-value');
+                hpValue.innerText = rateHp
+
+                let rateScore = score >= numOfEnemiesFull ? 100 : parseInt((score / numOfEnemiesFull * 100), 10);
+                // scoreText.setText(rateScore);
+
+                let scoreValue = document.querySelector('#score-value');
+                scoreValue.innerText = rateScore;
+
+            }
+
+            touchLadders(player, ladder) {
+                if (!metNPC) return;
+
+                mainCollider.active = false;
+                isClimbing = true;
+                player.body.allowGravity = false;
+                player.anims.play('playerClimb', true);
+                if (cursors.left.isDown || this.key_a.isDown) {
+                    player.setVelocityX(-speedHori * 2 * scale_rate);
+                    player.anims.play('playerLeftWalk1', true);
+                    look_direction = -1;
+                }
+                else if (cursors.right.isDown || this.key_d.isDown) {
+                    player.setVelocityX(speedHori * 2 * scale_rate);
+                    player.anims.play('playerRightWalk1', true);
+                    look_direction = 1;
+                }
+                else if (cursors.down.isDown || this.key_s.isDown) {
+                    if (player.y >= (ladder.y + ladder.height - 1 * scale_rate)) {
+                        player.y += 8 * scale_rate;
+                    }
+                    else {
+                        player.setVelocityY(speedVert * scale_rate);
+                    }
+                }
+                else {
+                    this.tweens.add({
+                        targets: player,
+                        x: ladder.x + ladder.width / 2,
+                        duration: 100,
+                        ease: 'Power2',
+                    });
+                }
+            }
+
+            updateEnemy(physics, anims, sound) {
+                const generateEnemy = (x, y, i) => {
+                    const enemy = this.physics.add.sprite(x * scale_rate, (DEFAULT_HEIGHT / 2) + ((y - bg_height / 2) * scale_rate), 'enemy_left_stand_0');
+                    enemy.setScale(enemy_scale_rate);
+                    enemy.setBounce(0.1);
+                    enemy.setCollideWorldBounds(true);
+                    enemy.anims.play('enemyLeftAttack', true);
+                    enemy.look_direction = Phaser.Math.Between(0, 1) === 0 ? -1 : 1;
+                    enemy.status = 'stand';
+                    enemy.hp = hp_enemy;
+                    setTimeout(() => {
+                        enemy.status = 'move';
+                    }, 500);
+                    enemies[i].add(enemy);
+                    numOfEnemies++;
+                    numOfCurrentEnemies++;
+                }
+
+                enemies.forEach(async (enemy, i) => {
+                    await enemy.children.iterate(async function (child) {
+                        if (!child) {
+                            console.error('Child sprite is null or undefined.');
+                            return;
+                        }
+
+                        if (child.status == 'die') {
+                            child.setVelocityX(0);
+
+                            if (child.look_direction == -1) {
+                                await child.anims.play('enemyLeftDie', true);
+
+                                child.once('animationcomplete', async function (animation, frame) {
+                                    if (animation.key === 'enemyLeftDie') {
+                                        child.destroy();
+                                        await new Promise(resolve => setTimeout(resolve, 1000));
+                                        setTimeout(() => {
+                                            if (enemies[i].countActive(true) < spawns[i].num && numOfEnemies < numOfEnemiesFull) {
+                                                generateEnemy(Phaser.Math.Between(spawns[i].x - 60, spawns[i].x + 60), spawns[i].y, i);
+                                            }
+                                        }, Phaser.Math.Between(2000, 4000));
+                                    }
+                                });
+                            } else if (child.look_direction == 1) {
+                                await child.anims.play('enemyRightDie', true);
+
+                                child.once('animationcomplete', async function (animation, frame) {
+                                    if (animation.key === 'enemyRightDie') {
+                                        child.destroy();
+                                        await new Promise(resolve => setTimeout(resolve, 1000));
+                                        setTimeout(() => {
+                                            if (enemies[i].countActive(true) < spawns[i].num && numOfEnemies < numOfEnemiesFull) {
+                                                generateEnemy(Phaser.Math.Between(spawns[i].x - 60, spawns[i].x + 60), spawns[i].y, i);
+                                            }
+                                        }, Phaser.Math.Between(2000, 4000));
+                                    }
+                                });
+                            }
+                            return;
+                        }
+                        else {
+                            if (child.status != 'die' && player.x >= spawns[i].xStart * scale_rate && player.x <= spawns[i].xEnd * scale_rate && player.y >= child.y - 40 * scale_rate && player.y <= child.y + 100 * scale_rate) {
+                                if (player.x + player.width * scale_rate * 1.5 < child.x && child.status) {
+                                    if (child.rest || child.status == 'attack') return;
+                                    await child.anims.play('enemyLeftMove', true);
+                                    child.setVelocityX(-speedHori * 0.7 * scale_rate);
+                                    child.look_direction = -1;
+                                }
+                                else if (player.x - player.width * scale_rate * 1.5 > child.x) {
+                                    if (child.rest || child.status == 'attack') return;
+                                    await child.anims.play('enemyRightMove', true);
+                                    child.setVelocityX(speedHori * 0.7 * scale_rate);
+                                    child.look_direction = 1;
+                                }
+                                else {
+                                    child.status = 'attack';
+                                }
+                                if (physics.overlap(player, child)) {
+                                    player.setTint(0xca2437);
+                                    setTimeout(() => {
+                                        player.clearTint();
+                                    }, 100);
+
+                                    // if (
+
+                                    //     child.anims.currentFrame.textureKey != "enemy_left_attack1_6" &&
+                                    //     child.anims.currentFrame.textureKey != "enemy_left_attack1_7" &&
+                                    //     child.anims.currentFrame.textureKey != "enemy_left_attack1_8" &&
+                                    //     child.anims.currentFrame.textureKey != "enemy_right_attack1_6" &&
+                                    //     child.anims.currentFrame.textureKey != "enemy_right_attack1_7" &&
+                                    //     child.anims.currentFrame.textureKey != "enemy_right_attack1_8"
+                                    // ) {
+
+                                    child.setTint(0xca2437);
+                                    setTimeout(() => {
+                                        child.clearTint();
+                                    }, 100);
+
+                                    if (child.status != 'die') {
+                                        score++;
+                                        numOfCurrentEnemies--;
+                                    }
+                                    child.status = 'die';
+
+                                    let sound_die = sound.add('sound_die');
+                                    sound_die.setVolume(0.4);
+                                    sound_die.play();
+
+                                    // if (!player.hitted) {
+                                    if (hp_player_working - damage_enemy * 3 >= 0) {
+                                        hp_player_working -= damage_enemy * 3;
+                                    }
+                                    else {
+                                        hp_player_working = 0;
+                                    }
+                                    player.hitted = true;
+                                    // }
+                                    // }
+
+
+
+                                }
+                            }
+                            // else {
+                            //     child.status = 'move';
+                            // }
+                            if (child.status == 'attack') {
+                                child.setVelocityX(0);
+                                if (child.look_direction == -1) {
+                                    let particle;
+                                    if (child.rest) {
+                                        if (child.x < spawns[i].xEnd) {
+                                            await child.anims.play('enemyLeftMove', true);
+                                            child.setVelocityX(speedHori * 0.7 * scale_rate);
+                                        }
+                                        else {
+                                            await child.anims.play('enemyLeftStand', true);
+                                            child.setVelocityX(0);
+                                        }
+                                    }
+                                    else {
+                                        await child.anims.play('enemyLeftAttack', true);
+                                        if (!child.showParticle) {
+                                            setTimeout(() => {
+                                                if (child.status == 'attack') {
+                                                    particle = bullets_enemy.create(child.x, child.y, 'enemy_left_particle');
+                                                    particle.setScale(enemy_scale_rate);
+                                                }
+                                                setTimeout(() => {
+                                                    if (particle) particle.destroy();
+                                                    // particle = null;
+                                                }, 100);
+                                            }, 700);
+                                            child.showParticle = true;
+                                        }
+                                    }
+                                    child.once('animationcomplete', async function (animation, frame) {
+                                        if (animation.key === 'enemyLeftAttack') {
+                                            child.rest = true;
+                                            player.hitted = false;
+                                            child.showParticle = false;
+                                            if (particle) particle.destroy();
+                                            setTimeout(() => {
+                                                child.rest = false;
+                                                child.status = 'move';
+                                            }, 1000);
+                                        }
+                                    });
+                                }
+                                else if (child.look_direction == 1) {
+                                    let particle;
+                                    if (child.rest) {
+                                        if (child.x > spawns[i].xStart) {
+                                            await child.anims.play('enemyRightMove', true);
+                                            child.setVelocityX(-speedHori * 0.5 * scale_rate);
+                                        }
+                                        else {
+                                            await child.anims.play('enemyRightStand', true);
+                                            child.setVelocityX(0);
+                                        }
+                                    }
+                                    else {
+                                        await child.anims.play('enemyRightAttack', true);
+                                        if (!child.showParticle) {
+                                            setTimeout(() => {
+                                                if (child.status == 'attack') {
+                                                    particle = bullets_enemy.create(child.x, child.y, 'enemy_right_particle');
+                                                    particle.setScale(enemy_scale_rate);
+                                                }
+                                                setTimeout(() => {
+                                                    if (particle) particle.destroy();
+                                                    // child.showParticle = false;
+                                                }, 100);
+                                            }, 700);
+                                            child.showParticle = true;
+                                        }
+                                    }
+                                    child.once('animationcomplete', async function (animation, frame) {
+                                        if (animation.key === 'enemyRightAttack') {
+                                            child.rest = true;
+                                            player.hitted = false;
+                                            child.showParticle = false;
+                                            if (particle) particle.destroy();
+                                            setTimeout(() => {
+                                                child.rest = false;
+                                                child.status = 'move';
+                                            }, 1000);
+                                        }
+                                    });
+                                }
+                                // return;
+                            }
+                            else if (child.status == 'stand') {
+                                if (child.look_direction == -1) {
+                                    if (child.x > spawns[i].xStart * scale_rate) {
+                                        await child.anims.play('enemyLeftStand', true);
+                                        child.setVelocityX(0);
+                                    } else {
+                                        child.look_direction = 1;
+                                    }
+                                } else if (child.look_direction == 1) {
+                                    if (child.x < spawns[i].xEnd * scale_rate) {
+                                        await child.anims.play('enemyRightStand', true);
+                                        child.setVelocityX(0);
+                                    } else {
+                                        child.look_direction = -1;
+                                    }
+                                }
+                            } else if (child.status == 'move') {
+                                if (child.look_direction == -1) {
+                                    if (child.x > spawns[i].xStart * scale_rate) {
+                                        await child.anims.play('enemyLeftMove', true);
+                                        child.setVelocityX(-speedHori * 0.7 * scale_rate);
+                                    } else {
+                                        child.look_direction = 1;
+                                    }
+                                } else if (child.look_direction == 1) {
+                                    if (child.x < spawns[i].xEnd * scale_rate) {
+                                        await child.anims.play('enemyRightMove', true);
+                                        child.setVelocityX(speedHori * 0.7 * scale_rate);
+                                    } else {
+                                        child.look_direction = -1;
+                                    }
+                                }
+                            }
+
+                        }
+
+                    });
+                });
+
+            }
+
+            updatePlayer(initEnemies) {
+                mainCollider.active = true;
+                if (this.physics.overlap(player, ladders) && metNPC) {
+                    mainCollider.active = false;
+                    isClimbing = true;
+                    player.body.allowGravity = false;
+                    player.anims.play('playerClimb', true);
+                } else {
+                    mainCollider.active = true;
+                    isClimbing = false;
+                    player.body.allowGravity = true;
+                }
+
+                player.setOffset(0, 0);
+                player.setVelocityX(0);
+
+                if (meetingNPC) return;
+
+                if (player.attackStatus == 'stab') {
+                    if (look_direction == 1) {
+                        player.anims.play('playerRightStabO1', true);
+                        let particle;
+                        if (!player.showParticle) {
+                            particle = bullets_player.create(player.x + player.width * player_scale_rate / 2, player.y - player.height / 2 * player_scale_rate, 'player_right_particle_stab')
+                            particle.setScale(player_scale_rate);
+                            player.showParticle = true;
+                        }
+                        player.once('animationcomplete', async function (animation, frame) {
+                            if (animation.key === 'playerRightStabO1') {
+                                player.attackStatus = '';
+                                player.showParticle = false;
+                                if (particle) particle.destroy();
+                                initEnemies();
+                            }
+                        });
+                    }
+                    else if (look_direction == -1) {
+                        player.anims.play('playerLeftStabO1', true);
+                        let particle;
+                        if (!player.showParticle) {
+                            particle = bullets_player.create(player.x - player.width * player_scale_rate / 2, player.y - player.height / 2 * player_scale_rate, 'player_left_particle_stab')
+                            particle.setScale(player_scale_rate);
+                            player.showParticle = true;
+                        }
+                        player.once('animationcomplete', async function (animation, frame) {
+                            if (animation.key === 'playerLeftStabO1') {
+                                player.attackStatus = '';
+                                player.showParticle = false;
+                                if (particle) particle.destroy();
+                                initEnemies();
+                            }
+                        });
+                    }
+                    return;
+                }
+                if (player.attackStatus == 'swing') {
+                    if (look_direction == 1) {
+                        player.anims.play('playerRightSwingO3', true);
+                        let particle;
+                        if (!player.showParticle) {
+                            particle = bullets_player.create(player.x + player.width * player_scale_rate / 2, player.y - player.height / 2 * player_scale_rate, 'player_right_particle_swing')
+                            particle.setScale(player_scale_rate);
+                            player.showParticle = true;
+                        }
+                        player.once('animationcomplete', async function (animation, frame) {
+                            if (animation.key === 'playerRightSwingO3') {
+                                player.attackStatus = '';
+                                player.showParticle = false;
+                                if (particle) particle.destroy();
+                                initEnemies();
+                            }
+                        });
+                    }
+                    else if (look_direction == -1) {
+                        player.anims.play('playerLeftSwingO3', true);
+                        let particle;
+                        if (!player.showParticle) {
+                            particle = bullets_player.create(player.x - player.width * player_scale_rate / 2, player.y - player.height / 2 * player_scale_rate, 'player_left_particle_swing')
+                            particle.setScale(player_scale_rate);
+                            player.showParticle = true;
+                        }
+                        player.once('animationcomplete', async function (animation, frame) {
+                            if (animation.key === 'playerLeftSwingO3') {
+                                player.attackStatus = '';
+                                player.showParticle = false;
+                                if (particle) particle.destroy();
+                                initEnemies();
+                            }
+                        });
+                    }
+                    return;
+                }
+
+                if (cursors.left.isDown || this.key_a.isDown) {
+                    player.setVelocityX(-speedHori * scale_rate);
+                    player.anims.play('playerLeftWalk1', true);
+                    look_direction = -1;
+                }
+                else if (cursors.right.isDown || this.key_d.isDown) {
+                    player.setVelocityX(speedHori * scale_rate);
+                    player.anims.play('playerRightWalk1', true);
+                    look_direction = 1;
+                }
+                else if (cursors.down.isDown || this.key_s.isDown) {
+                    if (isClimbing) {
+                        // player.setVelocityY(speedVert * scale_rate);
+                        return;
+                    }
+                    if (player.y < (DEFAULT_HEIGHT / 2) + (750 - bg_height / 2) * scale_rate) {
+                        player.setOffset(0, -2 * scale_rate);
+                    }
+                    // if (look_direction == 1) {
+                    //     player.anims.play('playerRightProne', true);
+                    // }
+                    // else if (look_direction == -1) {
+                    //     player.anims.play('playerLeftProne', true);
+                    // }
+                }
+                else if (isClimbing && (this.key_w.isDown || cursors.up.isDown)) {
+                    player.setVelocityY(-speedVert * scale_rate);
+                }
+                else {
+                    if (isClimbing) {
+                        player.setVelocityY(0);
+                        return;
+                    }
+                    if (look_direction == 1) {
+                        player.anims.play('playerRightStand1', true);
+                    }
+                    else if (look_direction == -1) {
+                        player.anims.play('playerLeftStand1', true);
+                    }
+                }
+
+                if (this.key_stab.isDown) {
+                    player.attackStatus = 'stab';
+                    if (look_direction == 1) {
+                        player.anims.play('playerRightStabO1', true);
+                    }
+                    else if (look_direction == -1) {
+                        player.anims.play('playerLeftStabO1', true);
+                    }
+                }
+                else if (this.key_swing.isDown) {
+                    player.attackStatus = 'swing'
+                    if (look_direction == 1) {
+                        player.anims.play('playerRightSwingO3', true);
+                    }
+                    else if (look_direction == -1) {
+                        player.anims.play('playerLeftSwingO3', true);
+                    }
+                }
+
+                if (!isClimbing && (this.key_w.isDown || cursors.up.isDown) && player.body.touching.down) {
+                    player.setVelocityY(-550 * Math.sqrt(scale_rate));
+                }
+            }
+
+            async hitEnemy(bullet_player, enemy, sound) {
+
+                let sound_hit = sound.add('sound_hit');
+                sound_hit.setVolume(0.4);
+                sound_hit.play();
+
+                // if (
+
+                //     enemy.anims.currentFrame.textureKey != "enemy_left_attack1_6" &&
+                //     enemy.anims.currentFrame.textureKey != "enemy_left_attack1_7" &&
+                //     enemy.anims.currentFrame.textureKey != "enemy_left_attack1_8" &&
+                //     enemy.anims.currentFrame.textureKey != "enemy_right_attack1_6" &&
+                //     enemy.anims.currentFrame.textureKey != "enemy_right_attack1_7" &&
+                //     enemy.anims.currentFrame.textureKey != "enemy_right_attack1_8"
+                // ) {
+
+                enemy.setTint(0xca2437);
+
+                if (!enemy.hitted) {
+                    enemy.hp -= await damage_player;
+                    enemy.hitted = true;
+                }
+
+                setTimeout(() => {
+                    enemy.clearTint();
+                }, 20);
+
+                if (enemy.hp <= 0) {
+                    if (enemy.status != 'die') {
+                        score++;
+                        numOfCurrentEnemies--;
+                    }
+                    enemy.status = await 'die';
+
+
+                    let sound_die = sound.add('sound_die');
+                    sound_die.setVolume(0.4);
+                    sound_die.play();
+                }
+                // }
+
+            }
+
+            hittedFromEnemy(player, bullet_enemy, sound) {
+
+                let sound_hit = sound.add('sound_hit');
+                sound_hit.setVolume(0.4);
+                sound_hit.play();
+
+                player.setTint(0xca2437);
+
+                if (!player.hitted) {
+                    if (hp_player_working - damage_enemy >= 0) {
+                        hp_player_working -= damage_enemy;
+                    }
+                    else {
+                        hp_player_working = 0;
+                    }
+                    player.hitted = true;
+                }
+
+                setTimeout(() => {
+                    player.clearTint();
+                }, 20);
+
+            }
+
+            initEnemies() {
+                enemies.forEach((enemy, i) => {
+                    enemy.children.iterate(async function (child) {
+                        child.hitted = false;
+                    })
+                })
+            }
+
+            showSpeaking(which) {
+                let quote = document.getElementById('quote');
+                let quoteContet = document.getElementById('quote-content');
+
+                let step = which == 1 ? speakingStep1 : which == 2 ? speakingStep2 : speakingStep3;
+                let content = which == 1 ? speakingNpc1 : which == 2 ? speakingNpc2 : speakingNpc3;
+
+                if (step < content.length) {
+                    quoteContet.innerText = content[step];
+                    which == 1 ? speakingStep1++ : speakingStep2++;
+                    quote.style.display = 'flex';
+                    const computedStylesOfQuote = window.getComputedStyle(quote);
+                    quote.style.top = `${DEFAULT_HEIGHT / 2 + (npc.y - this.cameras.main.midPoint.y) * cameraRate - parseInt(computedStylesOfQuote.height, 10) - 30}px`;
+                    quote.style.left = `${DEFAULT_WIDTH / 2 + (npc.x - this.cameras.main.midPoint.x) * cameraRate - parseInt(computedStylesOfQuote.width, 10) / 2}px`;
+                    return false;
+                }
+                else {
+                    meetingNPC = false;
+                    isSpeaking = false;
+                    if (which == 1) {
+                        metNPC = true;
+                    }
+                    else if (which == 3) {
+                        leaveNPC = true;
+                    }
+                    this.tweens.add({
+                        targets: npc,
+                        alpha: 1,
+                        ease: 'Linear',
+                        duration: 500,
+                    });
+                    quote.style.display = 'none';
+                    return true;
+                }
+
+            }
+
+        }
+
+        class SceneB extends Phaser.Scene {
+
+            constructor() {
+                super({ key: 'UIScene', active: true });
+            }
+
+            preload() {
+
+                this.load.image('player_right_stand1_0', img_source + '/character/right/stand1_0.png');
+                this.load.image('enemy_right_stand_0', img_source + '/enemy/right/stand_0.png');
+
+            }
+
+            create() {
+
+                // hpPlayerText = this.add.text(290, 22, '100', { fontSize: '28px', fill: '#111', fontFamily: 'Arial, sans-serif', fontStyle: 'bold' });
+                // hpPlayerText.setStroke('#ffffff',4);
+
+                // scoreText = this.add.text(290, 78, '0', { fontSize: '28px', fill: '#111', fontFamily: 'Arial, sans-serif', fontStyle: 'bold' });
+                // scoreText.setStroke('#ffffff',4);
+
+                // if (loaded) {
+
+                //     let playerImg = this.add.image(36, 36, 'player_right_stand1_0');
+                //     playerImg.setScale(0.7);
+                //     let enemyImg = this.add.image(36, 96, 'enemy_right_stand_0');
+                //     enemyImg.setScale(0.5);
+                // }
+
+                // let hp_Box = this.add.graphics();
+                // let hp_Bar = this.add.graphics();
+                // hp_Box.fillStyle(hpBoxColor, 1);
+                // hp_Box.fillRect(65, 25, widthOfBox, 25);
+                // temp_hp_Bar = hp_Bar;
+
+                // let score_Box = this.add.graphics();
+                // let score_Bar = this.add.graphics();
+                // score_Box.fillStyle(scoreBoxColor, 1);
+                // score_Box.fillRect(65, 80, widthOfBox, 25);
+                // temp_score_Bar = score_Bar;
+
+            }
+
+            // update() {
+            //     if (loaded) {
+            //         let playerImg = this.add.image(36, 36, 'player_right_stand1_0');
+            //         playerImg.setScale(0.7);
+            //         let enemyImg = this.add.image(36, 96, 'enemy_right_stand_0');
+            //         enemyImg.setScale(0.5);
+            //     }
+            // }
+
+        }
+
+        const hp_Box_width = 200
+        let temp_hp_Bar;
+        let temp_score_Bar;
+        const hpBoxColor = 0x1a5b18;
+        const scoreBoxColor = 0x131863;
+        const hpBarColor = 0x36a333;
+        const scoreBarColor = 0x2632d3;
+        const widthOfBox = 210;
+        const widthOfBar = 200;
+
+        setTimeout(() => {
+            console.log('test');
+            testImg = true;
+
+        }, 1000);
+
+        let config = {
+            type: Phaser.AUTO,
+            width: DEFAULT_WIDTH,
+            height: DEFAULT_HEIGHT,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 1000 },
+                    debug: false
+                }
+            },
+            scene: [SceneA]
+        };
+
+        let game = new Phaser.Game(config);
+
+
+    </script>
+
+</body>
+
+</html>

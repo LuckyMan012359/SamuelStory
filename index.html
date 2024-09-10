@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="./assets/icon/icon.png" type="image/x-icon">
+    <link rel="stylesheet" href="./assets/css/init.css">
+    <script src="./assets/phaser/dist/phaser.min.js"></script>
+    <title>Samuel Story | Home</title>
+</head>
+
+<body>
+    <div class="loader-container" id="loader-container">
+        <div class="loader">
+            <div class="bar1"></div>
+            <div class="bar2"></div>
+            <div class="bar3"></div>
+            <div class="bar4"></div>
+            <div class="bar5"></div>
+            <div class="bar6"></div>
+            <div class="bar7"></div>
+            <div class="bar8"></div>
+            <div class="bar9"></div>
+            <div class="bar10"></div>
+            <div class="bar11"></div>
+            <div class="bar12"></div>
+        </div>
+    </div>
+    <div>
+        <img src="./assets/imgs/home/bg.webp" alt="bg" class="img-bg">
+        <div id="label">LoginID</div>
+        <input type="text" id="input">
+        <button id="btnLogin" onclick="login()">Login</button>
+    </div>
+    <!-- <audio src="./assets/audios/sound_env_home.mp3" id="audio" autoplay loop></audio> -->
+
+    <script>
+
+        let loader = document.getElementById('loader-container');
+
+        window.onload = function () {
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 1000);
+        };
+
+        const widthScreen = window.innerWidth;
+        const heightScreen = window.innerHeight;
+
+        const widthBg = 2208;
+        const heightBg = 1242;
+
+        const xInput = 1290;
+        const yInput = 540;
+        const widthInput = 400;
+        const heightInput = 70;
+
+        const xBtnLogin = 1730;
+        const yBtnLogin = 534;
+        const widthBtnLogin = 180;
+        const heightBtnLogin = 75;
+
+        const xRate = widthScreen / widthBg;
+        const yRate = heightScreen / heightBg;
+
+        let label = document.getElementById('label');
+        let input = document.getElementById('input');
+        let btnLogin = document.getElementById('btnLogin');
+
+        input.style.left = xInput * xRate + 'px';
+        input.style.top = yInput * yRate + 'px';
+        input.style.width = widthInput * xRate + 'px';
+        input.style.height = heightInput * yRate + 'px';
+        input.style.fontSize = 30 * yRate + 'px';
+
+        btnLogin.style.left = xBtnLogin * xRate + 'px';
+        btnLogin.style.top = yBtnLogin * yRate + 'px';
+        btnLogin.style.width = widthBtnLogin * xRate + 'px';
+        btnLogin.style.height = heightBtnLogin * yRate + 'px';
+
+        label.style.left = (xInput - 180) * xRate + 'px';
+        label.style.top = (yInput) * yRate + 'px';
+        label.style.height = heightInput * yRate + 'px';
+        label.style.fontSize = 40 * xRate + 'px';
+
+        const login = () => {
+            if (input.value == 'insamity') {
+                window.location.href = './level1.html';
+                localStorage.setItem('logedin', true);
+            }
+            else {
+                alert('You are not Samuel!');
+            }
+        }
+
+        // let audio = document.getElementById("audio");
+
+        // // Automatically play the audio and set it to loop
+        // audio.autoplay = true;
+        // audio.loop = true;
+        // audio.load();
+
+
+        class Scene extends Phaser.Scene {
+
+            constructor() {
+                super({ key: 'GameScene' })
+            }
+
+            preload() {
+                this.load.audio('sound_env', './assets/audios/sound_env_home.mp3');
+            }
+
+            create() {
+                let sound_env = this.sound.add('sound_env');
+                sound_env.setLoop(true);
+                sound_env.setVolume(0.5);
+                sound_env.play();
+
+            }
+        }
+
+        let config = {
+            type: Phaser.AUTO,
+            width: 0,
+            height: 0,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 300 },
+                    debug: false
+                }
+            },
+            scene: [Scene]
+        };
+
+        let game = new Phaser.Game(config);
+
+    </script>
+</body>
+
+</html>
